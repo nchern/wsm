@@ -21,9 +21,9 @@ def consume(consumer):
                 res = CheckResult.from_json(msg.value.decode('utf-8'))
                 save_to_db([res])
             except Exception as e:
-                # Just log any exception.
                 # In this scenario we basically lose metrics read from kafka topic
                 # in case of any errror. Chose this option for sake of simplicity.
+                # In the prod code error handling should be more fine grained.
                 logging.exception(e)
 
     consumer.commit()

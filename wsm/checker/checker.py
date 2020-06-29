@@ -5,13 +5,14 @@ from wsm.settings import (
     TOPIC_NAME,
 )
 
+from .check import perform_checks
 
 CHECK_WAIT_TIMEOUT_SEC = 5
 
 
 def do_checks(checks, producer):
-    for check in checks:
-        res = check.perform()
+    results = perform_checks(checks)
+    for res in results:
         producer.send(TOPIC_NAME, res.to_json().encode('utf-8'))
 
 

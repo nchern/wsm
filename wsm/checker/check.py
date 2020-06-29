@@ -1,17 +1,15 @@
+import asyncio
+import aiohttp
 import re
-import urllib.request
 
-from socket import timeout
+from aiohttp.client_exceptions import ClientConnectorError
+from concurrent.futures import TimeoutError
 from time import time
-from urllib.error import (
-    HTTPError,
-    URLError,
-)
 
 from wsm.model import CheckResult
 
 
-CHECK_MAX_TIMEOUT_SEC = 10
+CHECK_MAX_TIMEOUT_SEC = 3
 
 
 class Check(object):
@@ -29,46 +27,46 @@ class Check(object):
             return True
         return self.regex.search(body) is not None
 
-    def perform(self, check_timeout=CHECK_MAX_TIMEOUT_SEC):
-        code = 0
-        started = time()
-        try:
-            with urllib.request.urlopen(
-                    self.url,
-                    timeout=check_timeout,
-            ) as response:
-                code = response.code
-                if not self.check_regex(
-                    response.read().decode(
-                        response.headers.get_content_charset() or 'utf-8',
-                    ),
-                ):
-                    code = -2
-
-        except HTTPError as e:
-            # http error occurred
-            code = e.code
-        except URLError:
-            # network error occurred
-            code = -1
-        except timeout:
-            # http call reached CHECK_MAX_TIMEOUT_SEC
-            # treat it as a network error
-            code = -1
-
-        now = time()
-        elapsed = now - started
-
-        return CheckResult(
-            created=int(now),
-            url=self.url,
-            status=code,
-            response_time_ms=int(elapsed * 1000),
-        )
-
     @classmethod
     def parse_from_config(cls, cfg):
         checks = cfg.get('checks')
         if not checks:
             return []
         return [cls(c.get('url'), c.get('regex')) for c in checks]
+
+
+async def fetch(check, loop):
+    code = 0
+    body = ''
+    started = time()
+
+    try:
+        timeout = aiohttp.ClientTimeout(total=CHECK_MAX_TIMEOUT_SEC)
+        async with aiohttp.ClientSession(loop=loop, timeout=timeout) as session:
+            async with session.get(check.url) as resp:
+                code = resp.status
+                body = await resp.text()
+    except ClientConnectorError:
+        code = -1
+    except TimeoutError:
+        code = -1
+
+    now = time()
+    elapsed = now - started
+    if not check.check_regex(body):
+        code = -2
+    return CheckResult(
+        status=code,
+        url=check.url,
+        created=int(now),
+        response_time_ms=int(elapsed * 1000),
+    )
+
+
+def perform_checks(checks):
+    loop = asyncio.get_event_loop()
+    tasks = [asyncio.ensure_future(fetch(check, loop)) for check in checks]
+    results = loop.run_until_complete(asyncio.gather(*tasks))
+    for r in results:
+        print(r.to_json())
+    return results

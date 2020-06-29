@@ -1,3 +1,4 @@
+import time
 import unittest
 
 from unittest.mock import (
@@ -9,6 +10,7 @@ from wsm.model import CheckResult
 from wsm.checker import (
     do_checks,
     Check,
+    CHECK_MAX_TIMEOUT_SEC,
 )
 
 from .httpd import serve_http
@@ -20,7 +22,9 @@ class TestHander(BaseHTTPRequestHandler):
         return  # mute logging
 
     def do_GET(self):
-        if self.path.endswith('bad_request'):
+        if self.path.endswith('timeout'):
+            time.sleep(CHECK_MAX_TIMEOUT_SEC + 1)
+        elif self.path.endswith('bad_request'):
             self.send_response(400)
         else:
             self.send_response(200)
@@ -43,6 +47,7 @@ class TestChecker(unittest.TestCase):
             (Check(url='http://localhost:65001/ok'), 200),
             (Check(url='http://localhost:65001/ok', regex='html'), -2),
             (Check(url='http://localhost:65001/bad_request'), 400),
+            (Check(url='http://localhost:65001/timeout'), -1),
         ]
 
         producer_mock = MagicMock()
