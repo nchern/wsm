@@ -1,0 +1,32 @@
+{
+    "db": {
+        "host": "pg-3c04dde-nchern-71d0.aivencloud.com",
+        "port": 23371,
+        "dbname": "defaultdb",
+        "sslmode": "require",
+        "user": "avnadmin"
+    },
+    "kafka": {
+        "bootstrap_servers": "kafka-8eb654f-nchern-71d0.aivencloud.com:23373",
+        "security_protocol": "SSL"
+    },
+    "checks": [
+        {
+            "url": "https://google.com"
+        },
+        {
+            "url": "https://google.com/not_found"
+        },
+        {
+            "url": "https://google1.com/"
+        },
+        {
+            "url": "https://ya.ru/",
+            "regex": "DOCTYPE [a-z]*?"
+        },
+        {
+            "url": "https://aiven.io/",
+            "regex": "<image.*?>.*?</image>"
+        }
+    ]
+}

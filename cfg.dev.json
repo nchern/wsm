@@ -1,0 +1,25 @@
+{
+    "db": {
+    },
+    "kafka": {
+    },
+    "checks": [
+        {
+            "url": "https://google.com"
+        },
+        {
+            "url": "https://google.com/not_found"
+        },
+        {
+            "url": "https://google1.com/"
+        },
+        {
+            "url": "https://ya.ru/",
+            "regex": "DOCTYPE [a-z]*?"
+        },
+        {
+            "url": "https://aiven.io/",
+            "regex": "<image.*?>.*?</image>"
+        }
+    ]
+}

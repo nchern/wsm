@@ -1,0 +1,53 @@
+version: "3"
+
+networks:
+  test-net:
+    driver: bridge
+
+volumes:
+    wsm-data:
+
+services:
+    db:
+        image: postgres:11-alpine
+        restart: on-failure
+        volumes:
+            - wsm-data:/var/lib/postgresql/data
+            - ./db:/docker-entrypoint-initdb.d
+        environment:
+            POSTGRES_DB: devdb
+            POSTGRES_USER: root
+            POSTGRES_PASSWORD: dev
+        networks:
+            - test-net
+        expose:
+          - "5432"
+    
+    # borrowed from confluent: https://github.com/confluentinc/cp-all-in-one/blob/5.5.0-post/cp-all-in-one-community/docker-compose.yml
+    zookeeper:
+        image: confluentinc/cp-zookeeper:5.5.0
+        ports:
+          - "2181:2181"
+        networks:
+            - test-net
+        environment:
+            ZOOKEEPER_CLIENT_PORT: 2181
+            ZOOKEEPER_TICK_TIME: 2000
+    broker:
+        image: confluentinc/cp-kafka:5.5.0
+        depends_on:
+          - zookeeper
+        ports:
+          - "29092:29092"
+          - "9092:9092"
+        networks:
+            - test-net
+        environment:
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://broker:9092
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+            KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
