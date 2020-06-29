@@ -67,6 +67,4 @@ def perform_checks(checks):
     loop = asyncio.get_event_loop()
     tasks = [asyncio.ensure_future(fetch(check, loop)) for check in checks]
     results = loop.run_until_complete(asyncio.gather(*tasks))
-    for r in results:
-        print(r.to_json())
     return results

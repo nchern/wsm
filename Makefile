@@ -1,3 +1,4 @@
+IMAGE_NAME=wsm
 
 .PHONY: deps
 deps:
@@ -26,7 +27,7 @@ lint:
 
 .PHONY: docker-image
 docker-image:
-	@docker build -t wsm .
+	@docker build -t $(IMAGE_NAME) .
 
 .PHONY: db-init
 db-init:
@@ -38,3 +39,11 @@ db-init:
 	-p "${PG_PORT}" \
 	-U "${PG_USER}" \
 	-d "${DB_NAME}"
+
+.PHONY: dev-consume
+dev-consume:
+	@docker run --rm -it --network wsm_test-net $(IMAGE_NAME) consume
+
+.PHONY: dev-check
+dev-check:
+	@docker run --rm -it --network wsm_test-net $(IMAGE_NAME) check
